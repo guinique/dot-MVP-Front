@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { nextTick, ref } from 'vue'
-import { sendChatMessage } from '@/api/tutors'
+import { nextTick, onMounted, ref } from 'vue'
+import { fetchChatHistory, sendChatMessage } from '@/api/tutors'
 import { EMBED_API_KEY } from '@/config'
 
 const props = defineProps<{
@@ -13,21 +13,71 @@ interface Message {
   content: string
 }
 
+const SESSION_STORAGE_PREFIX = 'dot-mvp-session-'
+
 const messages = ref<Message[]>([])
 const input = ref('')
 const loading = ref(false)
+const restoring = ref(false)
 const error = ref('')
 const sessionKey = ref<string | null>(null)
 const listRef = ref<HTMLElement | null>(null)
 
+function sessionStorageKey(tutorId: number) {
+  return `${SESSION_STORAGE_PREFIX}${tutorId}`
+}
+
+function persistSessionKey(key: string) {
+  localStorage.setItem(sessionStorageKey(props.tutorId), key)
+}
+
+function clearPersistedSession() {
+  localStorage.removeItem(sessionStorageKey(props.tutorId))
+}
+
 async function scrollToBottom() {
   await nextTick()
-  listRef.value?.scrollTo({ top: listRef.value.scrollHeight, behavior: 'smooth' })
+  const list = listRef.value
+  if (!list) return
+  if (typeof list.scrollTo === 'function') {
+    list.scrollTo({ top: list.scrollHeight, behavior: 'smooth' })
+  } else {
+    list.scrollTop = list.scrollHeight
+  }
 }
+
+async function restoreSession() {
+  if (!EMBED_API_KEY) return
+
+  const savedKey = localStorage.getItem(sessionStorageKey(props.tutorId))
+  if (!savedKey) return
+
+  restoring.value = true
+  error.value = ''
+  try {
+    const history = await fetchChatHistory(props.tutorId, savedKey, EMBED_API_KEY)
+    sessionKey.value = history.session_key
+    messages.value = history.messages.map((message) => ({
+      role: message.role,
+      content: message.content,
+    }))
+    await scrollToBottom()
+  } catch {
+    clearPersistedSession()
+    sessionKey.value = null
+    messages.value = []
+  } finally {
+    restoring.value = false
+  }
+}
+
+onMounted(() => {
+  void restoreSession()
+})
 
 async function send() {
   const text = input.value.trim()
-  if (!text || loading.value) return
+  if (!text || loading.value || restoring.value) return
 
   if (!EMBED_API_KEY) {
     error.value = 'VITE_EMBED_API_KEY não configurada'
@@ -43,6 +93,7 @@ async function send() {
   try {
     const reply = await sendChatMessage(props.tutorId, text, EMBED_API_KEY, sessionKey.value)
     sessionKey.value = reply.session_key
+    persistSessionKey(reply.session_key)
     messages.value.push({ role: 'assistant', content: reply.reply })
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Erro ao enviar mensagem'
@@ -57,7 +108,8 @@ async function send() {
   <div class="chat">
     <header class="chat__header">{{ title || 'Tutor' }}</header>
     <div ref="listRef" class="chat__messages">
-      <p v-if="!messages.length" class="chat__empty">Olá! Como posso ajudar?</p>
+      <p v-if="restoring" class="chat__empty">Carregando conversa...</p>
+      <p v-else-if="!messages.length" class="chat__empty">Olá! Como posso ajudar?</p>
       <div
         v-for="(msg, i) in messages"
         :key="i"
@@ -72,9 +124,9 @@ async function send() {
         v-model="input"
         type="text"
         placeholder="Digite sua mensagem..."
-        :disabled="loading"
+        :disabled="loading || restoring"
       />
-      <button type="submit" :disabled="loading || !input.trim()">
+      <button type="submit" :disabled="loading || restoring || !input.trim()">
         {{ loading ? '...' : 'Enviar' }}
       </button>
     </form>

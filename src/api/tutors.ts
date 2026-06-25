@@ -1,5 +1,5 @@
 import { apiFetch } from '@/api/client'
-import type { ChatReply, Tutor } from '@/config'
+import type { ChatHistory, ChatReply, Tutor } from '@/config'
 
 export function fetchTutors(token: string) {
   return apiFetch<Tutor[]>('/api/v1/tutors', {}, token)
@@ -44,6 +44,19 @@ export async function sendChatMessage(
         'X-Embed-Token': embedToken,
       },
       body: JSON.stringify({ message, session_key: sessionKey ?? null }),
+    },
+  )
+}
+
+export function fetchChatHistory(
+  tutorId: number,
+  sessionKey: string,
+  embedToken: string,
+): Promise<ChatHistory> {
+  return apiFetch<ChatHistory>(
+    `/api/v1/chat/tutors/${tutorId}/sessions/${encodeURIComponent(sessionKey)}/messages`,
+    {
+      headers: { 'X-Embed-Token': embedToken },
     },
   )
 }

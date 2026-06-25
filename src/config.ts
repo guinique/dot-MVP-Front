@@ -23,3 +23,15 @@ export interface ChatReply {
   session_key: string
   reply: string
 }
+
+export interface ChatHistoryMessage {
+  role: 'user' | 'assistant'
+  content: string
+  created_at: string
+}
+
+export interface ChatHistory {
+  session_id: number
+  session_key: string
+  messages: ChatHistoryMessage[]
+}
