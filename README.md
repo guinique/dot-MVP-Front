@@ -52,6 +52,7 @@ npm run build
 |------|-----------|
 | `/login` | Login admin |
 | `/admin/tutors` | CRUD de tutores |
+| `/admin/users` | Gestão de usuários (admin) |
 | `/docs/embed` | Documentação de incorporação |
 | `/embed/:tutorId` | Widget de chat (para iframe) |
 
@@ -71,6 +72,5 @@ npm run build
 
 ## Próximos Passos (para evolução do produto em produção)
 
-- Gestão de usuários no painel admin
 - Refresh token / sessão mais robusta
 - Temas customizáveis por tutor no widget

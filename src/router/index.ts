@@ -18,6 +18,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/admin/users',
+      name: 'users',
+      component: () => import('@/views/UsersView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/docs/embed',
       name: 'embed-docs',
       component: () => import('@/views/EmbedDocsView.vue'),

@@ -21,6 +21,7 @@ function logout() {
       <div class="header__brand">dot-MVP Tutores</div>
       <nav v-if="auth.isAuthenticated" class="header__nav">
         <RouterLink to="/admin/tutors">Tutores</RouterLink>
+        <RouterLink to="/admin/users">Usuários</RouterLink>
         <RouterLink to="/docs/embed">Embed</RouterLink>
         <button class="link-btn" type="button" @click="logout">Sair</button>
       </nav>
